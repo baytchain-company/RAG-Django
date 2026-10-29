@@ -1,0 +1,21 @@
+# Web
+Django>=5.0,<6.0
+djangorestframework>=3.15
+python-dotenv>=1.0
+
+# Database + vector search
+psycopg[binary]>=3.1
+pgvector>=0.3
+
+# Loading files
+pypdf>=4.0
+
+# Embeddings (free, local). Remove if you use RAG_EMBEDDING_PROVIDER=ollama/openai/hash
+sentence-transformers>=3.0
+
+# HTTP for Ollama / OpenAI-compatible APIs
+requests>=2.31
+
+# Tests
+pytest>=8.0
+pytest-django>=4.8

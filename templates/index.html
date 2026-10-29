@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Django RAG</title>
+<style>
+  :root{--bg:#0b0f14;--card:#121821;--line:#223040;--text:#e6edf3;--muted:#8b98a5;--accent:#2dd4bf}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:32px 16px}h1{margin:0 0 4px}p.sub{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  input,textarea,button{font:inherit;color:inherit}textarea,input[type=text]{width:100%;background:#0b0f14;border:1px solid var(--line);border-radius:10px;padding:10px}
+  button{background:var(--accent);color:#04201c;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;margin-top:10px}
+  .answer{white-space:pre-wrap}.src{font-size:14px;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+  details{margin-top:6px}summary{cursor:pointer}
+</style>
+</head>
+<body><main>
+  <h1>Django RAG</h1><p class="sub">Upload documents, then ask questions. Answers come only from your files, with sources.</p>
+  <div class="card">
+    <strong>1. Upload</strong>
+    <form id="up"><input type="file" name="file" accept=".pdf,.txt,.md"><br><button>Upload</button></form>
+    <div id="docs" class="src"></div>
+  </div>
+  <div class="card">
+    <strong>2. Ask</strong>
+    <form id="ask"><input type="text" name="question" placeholder="How many vacation days do I get?"><button>Ask</button></form>
+  </div>
+  <div class="card" id="out" hidden><div class="answer" id="answer"></div><div id="sources"></div></div>
+</main>
+<script>
+const csrf = document.cookie.split("; ").find(c => c.startsWith("csrftoken="))?.split("=")[1] || "";
+async function loadDocs(){const r=await fetch("/api/documents/");const d=await r.json();
+  document.getElementById("docs").textContent=d.length?d.map(x=>`${x.title} (${x.chunk_count} chunks)`).join(" · "):"No documents yet."}
+document.getElementById("up").onsubmit=async e=>{e.preventDefault();const r=await fetch("/api/documents/",{method:"POST",body:new FormData(e.target),headers:{"X-CSRFToken":csrf}});if(!r.ok)alert(await r.text());loadDocs()};
+document.getElementById("ask").onsubmit=async e=>{e.preventDefault();const q=e.target.question.value;if(!q)return;
+  document.getElementById("out").hidden=false;document.getElementById("answer").textContent="Thinking…";document.getElementById("sources").innerHTML="";
+  const r=await fetch("/api/ask/",{method:"POST",headers:{"Content-Type":"application/json","X-CSRFToken":csrf},body:JSON.stringify({question:q})});const d=await r.json();
+  document.getElementById("answer").textContent=d.answer||JSON.stringify(d);
+  const box=document.getElementById("sources");
+  (d.sources||[]).forEach(s=>{const el=document.createElement("details");el.className="src";
+    const sum=document.createElement("summary");sum.textContent=`[${s.n}] ${s.document}${s.page?" · p."+s.page:""} · distance ${s.distance}`;
+    const body=document.createElement("div");body.textContent=s.text;el.append(sum,body);box.append(el)})};
+loadDocs();
+</script>
+</body></html>
